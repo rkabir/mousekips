@@ -1,0 +1,7 @@
+mousekips is a keyboard based mouse controller - basically, there is a layout supplied to the program that tells it how you want your keys to be arranged and then it figures out where each key fits onto your screen. 
+
+i.e. if the layout is [ "abc", "def", "ghi" ], pressing 'a' will put the mouse cursor in the top left, b in the center left, c in the bottom left, d in the top middle, etc...
+
+additionally, one can add movement keys that will adjust the cursor by pressing 'ctrl-key' - it's in the code, it's not really documented yet.
+
+it uses python-xlib and pygtk to do this business and may halt your computer (or make it appear so) - if that happens, switch to a virtual terminal (Ctrl-Alt-F2) and kill the process.
