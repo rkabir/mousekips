@@ -1,9 +1,30 @@
+import gconf
 import globalkeybinding
 import gtk
+import pyosd
 import time
+
+import Xlib
 from Xlib.display import Display
 from Xlib import X
-import Xlib
+
+GCONF_DIR       = "/apps/mousekips"
+LAYOUT_KEY      = "%s/layout" % (GCONF_DIR)
+MOVEMENT_KEY    = "%s/movement" % (GCONF_DIR)
+
+DEFAULT_MVMT    = { "h" : "left",
+                    "j" : "down",
+                    "k" : "up",
+                    "l" : "right" }
+
+DEFAULT_MAP     = [ "1234567890",
+                    "!@#$%^&*()",
+                    "qwertyuiop",
+                    "QWERTYUIOP",
+                    "asdfghjkl;",
+                    "ASDFGHJKL:",
+                    "zxcvbnm,./",
+                    "ZXCVBNM<>?" ]
 
 class KeyPointer:
   def __init__(self):
@@ -11,8 +32,34 @@ class KeyPointer:
     self.screen = self.display.screen ()
     self.root = self.screen.root
     self.keymap = gtk.gdk.keymap_get_default ()
-    keyval = gtk.keysyms.Return
-    self.finish_keycode = self.keymap.get_entries_for_keyval(keyval)[0][0]
+    self.finish_keyval = gtk.keysyms.Return
+    self.finish_keycode = self.keymap.get_entries_for_keyval(self.finish_keyval)[0][0]
+
+    self.setup_movementkeys(DEFAULT_MVMT)
+    self.setup_keymapping(DEFAULT_MAP)
+    self.init_gconf(GCONF_DIR)
+
+  def init_gconf(self, app_dir):
+    self.gconf = gconf.client_get_default ()
+    self.gconf.add_dir (app_dir, gconf.CLIENT_PRELOAD_NONE)
+    self.gconf.notify_add (LAYOUT_KEY, self.gconf_cb)
+    self.gconf.notify_add (MOVEMENT_KEY, self.gconf_cb)
+
+    self.read_gconf(app_dir)
+
+  def read_gconf(self, app_dir):
+    gconf_keymappings = self.gconf.get_list(LAYOUT_KEY, gconf.VALUE_STRING)
+
+    keymappings = []
+    for line in gconf_keymappings:
+      keymappings.append(line.strip())
+
+    self.setup_keymapping(keymappings)
+
+  def gconf_cb(self, *args):
+    # One of our settings changed, probably should re-read gconf data
+    self.read_gconf(GCONF_DIR)
+
   def launch_cb(self, keybinding):
     print 'Grabbing Keyboard Focus'
     self.root.grab_keyboard(True, X.GrabModeAsync, X.GrabModeAsync,
@@ -99,12 +146,21 @@ class KeyPointer:
       pass
     return e.detail == self.finish_keycode
 
-  def error(self):
-    pass
+  def display_hints(self):
+
+    w = self.screen.width_in_pixels
+    h = self.screen.height_in_pixels
+    h_block = float(h) / len(self.keymapping_array)
+    for y in xrange(len(self.keymapping_array)):
+      w_block = float(w) / len(self.keymapping_array[y])
+      for x in xrange(len(self.keymapping_array)):
+        pass
+    self.display.flush()
 
   def screen_handler(self):
     self.root.change_attributes(event_mask = X.KeyPressMask)
     self.screen = self.display.screen()
+
     while True:
       print 'next event'
       event = self.root.display.next_event()
@@ -118,25 +174,11 @@ class KeyPointer:
     self.display.allow_events(X.AsyncKeyboard, X.CurrentTime)
     self.display.allow_events(X.AsyncPointer, X.CurrentTime)
 
-keymapping = [ "1234567890",
-               "!@#$%^&*()",
-               "qwertyuiop",
-               "QWERTYUIOP",
-               "asdfghjkl;",
-               "ASDFGHJKL:",
-               "zxcvbnm,./",
-               "ZXCVBNM<>?" ]
-keymovements = { "h" : "left",
-                 "j" : "down",
-                 "k" : "up",
-                 "l" : "right" }
 
 kp = KeyPointer()
-kp.setup_keymapping(keymapping)
-kp.setup_movementkeys(keymovements)
 
 gtk.gdk.threads_init ()
-keybinding = globalkeybinding.GlobalKeyBinding ("/apps/mousepy", "launch")
+keybinding = globalkeybinding.GlobalKeyBinding (GCONF_DIR, "launch")
 keybinding.connect ('activate', kp.launch_cb)
 keybinding.grab ()
 keybinding.start ()

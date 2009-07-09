@@ -70,7 +70,6 @@ class GlobalKeyBinding (gobject.GObject, threading.Thread):
 
     def grab (self):
         accelerator = self.gconf.get_string (self.gconf_key)
-        print accelerator
         keyval, modifiers = gtk.accelerator_parse (accelerator)
         if not accelerator or (not keyval and not modifiers):
             self.keycode = None
@@ -96,21 +95,24 @@ class GlobalKeyBinding (gobject.GObject, threading.Thread):
         self.running = True
         wait_for_release = False
         while self.running:
-            event = self.display.next_event ()
-            if event.detail == self.keycode and event.type == X.KeyPress and not wait_for_release:
-                modifiers = event.state & self.known_modifiers_mask
-                if modifiers == self.modifiers:
-                    wait_for_release = True
-                    self.display.allow_events (X.AsyncKeyboard, event.time)
-                else:
-                    self.display.allow_events (X.ReplayKeyboard, event.time)
-            elif event.detail == self.keycode and wait_for_release:
-                if event.type == X.KeyRelease:
-                    wait_for_release = False
-                    gobject.idle_add (self.idle)
-                self.display.allow_events (X.AsyncKeyboard, event.time)
-            else:
-                self.display.allow_events (X.ReplayKeyboard, event.time)
+            try:
+              event = self.display.next_event ()
+              if event.detail == self.keycode and event.type == X.KeyPress and not wait_for_release:
+                  modifiers = event.state & self.known_modifiers_mask
+                  if modifiers == self.modifiers:
+                      wait_for_release = True
+                      self.display.allow_events (X.AsyncKeyboard, event.time)
+                  else:
+                      self.display.allow_events (X.ReplayKeyboard, event.time)
+              elif event.detail == self.keycode and wait_for_release:
+                  if event.type == X.KeyRelease:
+                      wait_for_release = False
+                      gobject.idle_add (self.idle)
+                  self.display.allow_events (X.AsyncKeyboard, event.time)
+              else:
+                  self.display.allow_events (X.ReplayKeyboard, event.time)
+            except Exception, e:
+              print e
 
     def stop (self):
         self.running = False
