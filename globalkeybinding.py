@@ -76,7 +76,6 @@ class GlobalKeyBinding (gobject.GObject, threading.Thread):
             self.modifiers = None
             return
         self.keycode = self.keymap.get_entries_for_keyval(keyval)[0][0]
-        print self.keycode
         self.modifiers = int (modifiers)
         return self.root.grab_key (self.keycode, X.AnyModifier, True, X.GrabModeAsync, X.GrabModeSync)
 

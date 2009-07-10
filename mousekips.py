@@ -9,6 +9,7 @@ from Xlib.display import Display
 from Xlib import X
 
 GCONF_DIR       = "/apps/mousekips"
+LAUNCH_KEY      = "launch"
 LAYOUT_KEY      = "%s/layout" % (GCONF_DIR)
 MOVEMENT_KEY    = "%s/movement" % (GCONF_DIR)
 
@@ -147,7 +148,6 @@ class KeyPointer:
     return e.detail == self.finish_keycode
 
   def display_hints(self):
-
     w = self.screen.width_in_pixels
     h = self.screen.height_in_pixels
     h_block = float(h) / len(self.keymapping_array)
@@ -162,7 +162,6 @@ class KeyPointer:
     self.screen = self.display.screen()
 
     while True:
-      print 'next event'
       event = self.root.display.next_event()
       try:
         if self.keypress_cb(event):
@@ -174,13 +173,16 @@ class KeyPointer:
     self.display.allow_events(X.AsyncKeyboard, X.CurrentTime)
     self.display.allow_events(X.AsyncPointer, X.CurrentTime)
 
+def main():
+  kp = KeyPointer()
 
-kp = KeyPointer()
+  gtk.gdk.threads_init ()
+  keybinding = globalkeybinding.GlobalKeyBinding (GCONF_DIR, LAUNCH_KEY)
+  keybinding.connect ('activate', kp.launch_cb)
+  keybinding.grab ()
+  keybinding.start ()
 
-gtk.gdk.threads_init ()
-keybinding = globalkeybinding.GlobalKeyBinding (GCONF_DIR, "launch")
-keybinding.connect ('activate', kp.launch_cb)
-keybinding.grab ()
-keybinding.start ()
+  gtk.main ()
 
-gtk.main ()
+if __name__ == "__main__":
+  main()
